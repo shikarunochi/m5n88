@@ -284,6 +284,9 @@ CX88View CX88000::m_view;
 int CX88000::m_lastKeyCode;
 int CX88000::m_keyInputCounter;
 
+bool CX88000::m_suspendScrnThreadFlag;
+bool CX88000::m_btnBLongPressFlag;
+
 #ifdef X88_GUI_WINDOWS
 
 // period changed
@@ -358,10 +361,14 @@ bool CX88000::Initialize() {
 
 	m_lastKeyCode = 0;
 	m_keyInputCounter = 0;
+	m_suspendScrnThreadFlag = false;
+	m_btnBLongPressFlag = false;
 //	for (int nChannel = 0; nChannel < 3; nChannel++) {
 //		m_apPcgPlayer[nChannel] = NULL;
 //	}
 Serial.println("X88000Start!:1");
+M5.Lcd.println("PC-8801 emulator for M5Stack FIRE");
+M5.Lcd.println("Initialize...");
 
 uint8_t *pbtScreenDataBits = (uint8_t*)ps_malloc(640*400);
 
@@ -480,13 +487,15 @@ uint8_t *pbtScreenDataBits = (uint8_t*)ps_malloc(640*400);
 	CDiskImageFile::SetDiskImageFileOpenCallback(DiskImageFileOpen);
 	CDiskImageFile::SetDiskImageFileCloseCallback(DiskImageFileClose);
 
+	M5.Lcd.println("READ ROM FILE");
 	m_pc88.Initialize();
 	m_pc88.Reset();
 
-
+	M5.Lcd.println("READ DISK FILE");
 	CDiskImageCollection& dic = m_pc88.GetDiskImageCollection();
 	Serial.println("DiskImageSet");
-	dic.AddDiskImageFile("dezeni.d88", true);
+	//std::string fileDirPath = DISK_DIRECTORY;
+	dic.AddDiskImageFile("pc8801disk.d88", true);
 
 	Serial.println("SetDiskImage");
 	m_pc88.Fdc().SetDiskImage(0,m_pc88.GetDiskImageCollection().GetDiskImage(0));
@@ -496,6 +505,7 @@ uint8_t *pbtScreenDataBits = (uint8_t*)ps_malloc(640*400);
 //	m_optman.LoadEnvFile(*m_pThis, m_fstrEnvFileName);
 	//ParseCommandLine();
 	//Serial.println("ParseCommandLine End");
+	M5.Lcd.println("SYSTEM STARTING...");
 	DoReset();
 	Serial.println("DoResetEnd");
 
@@ -1827,6 +1837,22 @@ void CX88000::OnIdle() {
 	m_nExBeepUpdateCount -= m_anExBeepQueue[m_nBeepQueuePtr];
 	m_anExBeepQueue[m_nBeepQueuePtr] = 0;
 	
+    M5.update();
+	if(M5.BtnB.wasReleased()){
+		m_btnBLongPressFlag = false;
+	}
+    if(M5.BtnB.pressedFor(2000)){
+      if(m_btnBLongPressFlag != true){
+        m_btnBLongPressFlag = true;
+        //B長押しで、テープ選択画面
+        //選択時は画面描画止める
+        m_suspendScrnThreadFlag = true;
+        selectD88();
+        delay(100);
+        m_suspendScrnThreadFlag = false;
+      }
+    } 
+
 	//erial.println("OnIdle End");
 	delay(1);
 }
@@ -2012,19 +2038,160 @@ void CX88000::scrn_thread(void *arg){
     long timeTmp;
     long vsyncTmp;
 	while(true){
-		//if(suspendScrnThreadFlag == false){
-     	timeTmp = millis();
-		m_view.TimeOutCallback();
-		vsyncTmp = millis();
-     	if(synctime - (vsyncTmp - timeTmp) > 0){
-        	delay(synctime - (vsyncTmp - timeTmp));
-      	}else{
-        	delay(1);
-        }
-    	//}//else{
-       	//delay(synctime);
-    	//}
+		if(m_suspendScrnThreadFlag == false){
+			timeTmp = millis();
+			m_view.TimeOutCallback();
+			vsyncTmp = millis();
+			if(synctime - (vsyncTmp - timeTmp) > 0){
+				delay(synctime - (vsyncTmp - timeTmp));
+			}else{
+				delay(1);
+			}
+		}else{
+       		delay(synctime);
+    	}
 	}
+}
+
+void CX88000::selectD88(){
+	File d88FileRoot;
+	String fileList[MAX_FILES];
+
+  	delay(100);
+  	d88FileRoot = SD.open(DISK_DIRECTORY);
+	int fileListCount = 0;
+  	
+	while(1){
+    	File entry =  d88FileRoot.openNextFile();
+    	if(!entry){// no more files
+	        break;
+	    }
+	    //ファイルのみ取得
+	    if (!entry.isDirectory()) {
+        	String fullFileName = entry.name();
+        	String fileName = fullFileName.substring(fullFileName.lastIndexOf("/") + 1);
+        	fileList[fileListCount] = fileName;
+        	fileListCount++;
+			Serial.println(fileName);
+    	}
+    	entry.close();
+  	}
+  	d88FileRoot.close();
+
+
+  	delay(10);
+  	M5.Lcd.fillScreen(TFT_BLACK);
+  	delay(10);
+  	M5.Lcd.setTextSize(2);
+
+
+  
+  int startIndex = 0;
+  int endIndex = startIndex + 10;
+  if(endIndex > fileListCount){
+    endIndex = fileListCount;
+  }
+  Serial.print("start:");
+  Serial.println(startIndex);
+  Serial.println("end:");
+  Serial.println(endIndex);
+  boolean needRedraw = true;
+  int selectIndex = 0;
+  while(true){
+
+    if(needRedraw == true){
+      M5.Lcd.fillScreen(0);
+      M5.Lcd.setCursor(0,0);
+      startIndex = selectIndex - 5;
+      if(startIndex < 0){
+        startIndex = 0;
+      }
+
+      endIndex = startIndex + 13;
+      if(endIndex > fileListCount){
+        endIndex = fileListCount;
+      }
+
+      for(int index = startIndex;index <= endIndex;index++){
+          if(index == selectIndex){
+             M5.Lcd.setTextColor(TFT_GREEN);
+          }else{
+            M5.Lcd.setTextColor(TFT_WHITE);
+          }
+		  if(index == 0){
+			M5.Lcd.println("[NO DISK]");
+		  }else{
+          	M5.Lcd.println(fileList[index - 1]);
+		  }
+      }
+      M5.Lcd.setTextColor(TFT_WHITE);
+
+      M5.Lcd.drawRect(0, 240 - 19, 100 , 18, TFT_WHITE);
+      M5.Lcd.setCursor(35, 240 - 17);
+      M5.Lcd.print("U P");
+      M5.Lcd.drawRect(110, 240 - 19, 100 , 18, TFT_WHITE);
+      M5.Lcd.setCursor(125, 240 - 17);
+      M5.Lcd.print("SELECT");
+      M5.Lcd.drawRect(220, 240 - 19, 100 , 18, TFT_WHITE);
+      M5.Lcd.setCursor(245, 240 - 17);
+      M5.Lcd.print("DOWN");
+      needRedraw = false;
+    }
+    M5.update();
+    if(M5.BtnA.wasPressed()){
+      selectIndex--;
+      if(selectIndex < 0){
+        selectIndex = 0;
+      }
+      needRedraw = true;
+    }
+
+    if(M5.BtnC.wasPressed()){
+      selectIndex++;
+      if(selectIndex > fileListCount){
+        selectIndex = fileListCount;
+      }
+      needRedraw = true;
+    }
+    
+    if(M5.BtnB.wasPressed()){
+		CDiskImageCollection& dic = m_pc88.GetDiskImageCollection();
+		if(m_pc88.Fdc().IsDriveReady(0)==true){
+			m_pc88.Fdc().SetDiskImage(0, NULL);
+			CDiskImage* curDiskImage = m_pc88.Fdc().GetDiskImage(0);
+			dic.clear();
+		}
+		if(selectIndex == 0){
+			M5.Lcd.fillScreen(TFT_BLACK);
+			M5.Lcd.setCursor(0,0);			
+			M5.Lcd.println("Disk Eject");
+		}else{
+			Serial.print("select:");
+			Serial.println(fileList[selectIndex-1]);
+			delay(10);
+			//Set Disk
+			Serial.println("DiskImageSet");
+			const char* cFileName = (fileList[selectIndex-1]).c_str();
+			std::string fileName(cFileName);
+			dic.AddDiskImageFile(fileName, true);
+
+			Serial.println("SetDiskImage");
+			m_pc88.Fdc().SetDiskImage(0,m_pc88.GetDiskImageCollection().GetDiskImage(0));
+
+			M5.Lcd.fillScreen(TFT_BLACK);
+			M5.Lcd.setCursor(0,0);			
+			M5.Lcd.print("Set Disk:");
+			M5.Lcd.println(fileList[selectIndex-1]);
+		}
+		M5.Lcd.println("System Reset...");		
+		delay(1000);
+		DoReset();
+      	M5.Lcd.fillScreen(TFT_BLACK);
+      	delay(10);
+      	return;
+    }    
+    delay(100);
+  }
 }
 
 

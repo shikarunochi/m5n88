@@ -254,7 +254,8 @@ int CX88DiskImageMemory::Create(
 			throw int(CDiskImageFile::ERR_IOERROR);
 		}
 */
-		file = SD.open(String("/PC88ROM/pc8801disk.d88"));
+		const char* fileName = fstrFileName.c_str();
+		file = SD.open(String(DISK_DIRECTORY) + "/" + String(fileName));
 		Serial.println("OpenDiskImage");
 		int nLength = file.size();
 		Serial.print("length:");
@@ -329,9 +330,9 @@ int CX88DiskImageMemory::Destroy() const {
 			free(m_pbtData);
 		}
 	//}
-	if (m_nFile != -1) {
-		close(m_nFile);
-	}
+	//if (m_nFile != -1) {
+	//	close(m_nFile);
+	//}
 
 #endif // X88_PLATFORM
 

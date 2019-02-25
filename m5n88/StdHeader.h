@@ -301,4 +301,7 @@ typedef GtkWidget* CX88WndHandle;
 #define TRUE true
 #define FALSE false
 
+#define MAX_FILES 255 // this affects memory
+#define DISK_DIRECTORY "/PC88ROM/DISK"
+
 #include <M5Stack.h>

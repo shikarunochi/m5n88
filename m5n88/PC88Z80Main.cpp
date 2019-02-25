@@ -809,7 +809,6 @@ void CPC88Z80Main::Reset() {
 	}
 
 	if (!IsAlwaysMemWait()) {
-		Serial.println("standard memory read : no wait");
 		// standard memory read : no wait
 		ReadMemoryNBasicRom_N = ReadMemoryNBasicRom;
 		ReadMemoryN80BasicRom_N = ReadMemoryN80BasicRom;
@@ -846,7 +845,6 @@ void CPC88Z80Main::Reset() {
 		WriteMemoryFastTVRam_N = WriteMemoryFastTVRam;
 	} else {
 		// standard memory read : wait
-		Serial.println("standard memory read : wait");
 		ReadMemoryNBasicRom_N = ReadMemoryNBasicRom_Wait;
 		ReadMemoryN80BasicRom_N = ReadMemoryN80BasicRom_Wait;
 		ReadMemoryN80Basic4thRom_N = ReadMemoryN80Basic4thRom_Wait;
@@ -883,7 +881,6 @@ void CPC88Z80Main::Reset() {
 	}
 	
 	if (!IsM1Wait()) {
-		Serial.println("M1-cycle memory read : no wait");
 		// M1-cycle memory read : no wait
 		ReadMemoryNBasicRom_M1 = ReadMemoryNBasicRom_N;
 		ReadMemoryN80BasicRom_M1 = ReadMemoryN80BasicRom_N;
@@ -904,7 +901,6 @@ void CPC88Z80Main::Reset() {
 		ReadMemoryGVRam2_M1 = ReadMemoryGVRam2_N;
 		ReadMemoryGVRamEx_M1 = ReadMemoryGVRamEx_N;
 	} else {
-		Serial.println("M1-cycle memory read : wait");
 		// M1-cycle memory read : wait
 		ReadMemoryNBasicRom_M1 = ReadMemoryNBasicRom_Wait;
 		ReadMemoryN80BasicRom_M1 = ReadMemoryN80BasicRom_Wait;
@@ -936,7 +932,6 @@ void CPC88Z80Main::Reset() {
 	}
 	if (!m_bFastROMEmulation) {
 		// no fast ROM emulation
-		Serial.println("no fast ROM emulation");
 		ReadMemoryN88BasicRomB7_M1 = ReadMemoryN88BasicRom_M1;
 	} else {
 		// fast ROM emulation
@@ -952,7 +947,6 @@ void CPC88Z80Main::Reset() {
 		(GetBasicMode() == BASICMODE_N80V2);
 
 	if (m_bNMode) {
-		Serial.println("m_bNMode = true");
 		for (nBlock = 0; nBlock < 8; nBlock++) {
 			switch(GetBasicMode()) {
 			case BASICMODE_N:
@@ -976,42 +970,17 @@ void CPC88Z80Main::Reset() {
 		SetReadMemoryM1Proc(8, ReadMemoryMainRam_M1);
 		SetWriteMemoryProc(8, WriteMemoryMainRam_N);
 	} else {
-		Serial.println("m_bNMode = false");
 		for (nBlock = 0; nBlock < 8; nBlock++) {
 			SetReadMemoryProc(nBlock, ReadMemoryN88BasicRom_N);
 			SetReadMemoryM1Proc(nBlock, ReadMemoryN88BasicRom_M1);
 			SetWriteMemoryProc(nBlock, WriteMemoryMainRam_N);
 		}
-		//↑ここでは入ってた
 		SetReadMemoryM1Proc(7, ReadMemoryN88BasicRomB7_M1);
 		//SetReadMemoryM1Proc(8, ReadMemoryN88BasicRomB7_M1);
 		SetReadMemoryProc(8, ReadMemoryMainRamTW_N);
 		SetReadMemoryM1Proc(8, ReadMemoryMainRamTW_M1);
 		SetWriteMemoryProc(8, WriteMemoryMainRamTW_N);
 
-			Serial.print("Z80 Reset 6");
-	Serial.print(ReadMemory(0),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(1),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(2),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(3),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(4),HEX);
-	Serial.println();
-
-	Serial.print("MemoryM1 :");
-	Serial.print(ReadMemoryM1(0),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(1),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(2),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(3),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(4),HEX);
-	Serial.println();
 
 	}
 
@@ -1021,37 +990,11 @@ void CPC88Z80Main::Reset() {
 		SetWriteMemoryProc(nBlock, WriteMemoryMainRam_N);
 	}
 
-	Serial.print("Z80 Reset 7");
-	Serial.print(ReadMemory(0),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(1),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(2),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(3),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemory(4),HEX);
-	Serial.println();
-
-	Serial.print("MemoryM1 :");
-	Serial.print(ReadMemoryM1(0),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(1),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(2),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(3),HEX);
-	Serial.print(":");
-	Serial.print(ReadMemoryM1(4),HEX);
-	Serial.println();
-
 	if (!m_bFastTVRamUse) {
-		Serial.println("bFastTVRamUse = false");
 		SetReadMemoryProc(15, ReadMemoryMainRam_N);
 		SetReadMemoryM1Proc(15, ReadMemoryMainRam_M1);
 		SetWriteMemoryProc(15, WriteMemoryMainRam_N);
 	} else {
-		Serial.println("bFastTVRamUse = true");
 		SetReadMemoryProc(15, ReadMemoryFastTVRam_N);
 		SetReadMemoryM1Proc(15, ReadMemoryFastTVRam_M1);
 		SetWriteMemoryProc(15, WriteMemoryFastTVRam_N);

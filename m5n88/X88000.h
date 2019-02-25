@@ -706,6 +706,10 @@ public:
 	static void ChangeKeyMatricsStatus(int charCode, bool keyOnFlag);
 	
 	static void scrn_thread(void *arg);
+
+	static bool m_suspendScrnThreadFlag;
+	static bool m_btnBLongPressFlag;
+	static void selectD88();
 };
 
 #endif // X88000_DEFINED
